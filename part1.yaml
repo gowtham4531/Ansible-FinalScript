@@ -1,0 +1,38 @@
+---
+- hosts: webclients, webserver, apacheserver
+  become: true
+  become_user: root
+  name: Create group and users
+  tasks:
+  - name: Create Group 
+    group: 
+      name: "{{ item }}"
+      state: present
+    with_items: 
+    - Automation
+    - Devops
+  - name: Create User-1 
+    user: 
+      name: AynRand 
+      state: present
+      groups: 
+      - Automation
+  - name: Create User-2
+    user:
+      name: RamGopal
+      state: present
+      groups:
+      - Automation
+- hosts: webclients
+  become: true
+  become_user: root
+  name: Verify, if the users are created into Automation group
+  tasks:
+  - name: transfer the script to webclient
+    copy: src=/etc/ansible/users-verification.sh dest=/etc/
+  - name: Execute the script
+    command: sh /etc/users-verification.sh > /tmp/shell_output
+    register: shell_output
+  - name: Print shell_output
+    debug: var=shell_output.stdout_lines
+

@@ -1,0 +1,81 @@
+---
+- hosts: webserver
+  become: true
+  become_user: root
+  tasks: 
+  - name: Install httpd
+    yum: name=httpd state=present 
+  - name: Start httpd
+    service: name=httpd state=started
+  - name: Create content
+    copy: 
+     content: "I am Gowtham. This is Ansible Assignment of IADT!!" 
+     dest: /var/www/html/index.html 
+  - name: Restart httpd
+    service: name=httpd state=restarted
+
+##Using Synchronize module to copy file from Webserver to Webclient
+                             
+- hosts: webserver
+  become: true
+  become_user: root
+  tasks:
+  - name: Copy the file from apache to webclient
+    tags: sync-pull
+    synchronize:
+       mode: pull
+       src: /var/www/html/index.html
+       dest: /etc/ansibleclient1/
+    delegate_to: 172.31.13.16
+    
+## Using SCP to fetch index.html from webclient into Base Machine
+- hosts: 127.0.0.1 
+  become: true 
+  become_user: root 
+  tasks: 
+    - name: Copy the file from Webclient to Base Machine using SCP
+      shell: scp ec2-user@172.31.13.16:/etc/ansibleclient1/index.html /var/www/html/
+      
+## Host the copied webpage at Base Machine      
+- hosts: basemachine
+  become: true
+  become_user: root
+  tasks: 
+  - name: Install httpd
+    yum: name=httpd state=present 
+  - name: Start httpd
+    service: name=httpd state=started
+    
+## Started the Operation of installing, running, and creating database in MySQl
+- hosts: webserver 
+  become: true
+  become_user: root
+  tasks: 
+  - name: Create folder
+    file: path=/usr/mysql state=directory
+  - name: Install WGET 
+    yum: name=wget state=installed 
+  - name: Install Python 
+    yum: name=MySQL-python state=installed 
+  - name: Download Lib 
+    get_url: url=http://repo.mysql.com/mysql-community-release-el7-5.noarch.rpm dest=/usr/mysql/mysql-community-release-el7-5.noarch.rpm 
+  - name: Install rpm 
+    yum: name=/usr/mysql/mysql-community-release-el7-5.noarch.rpm state=present 
+  - name: Install MySQL 
+    yum: name=mysql-server state=installed 
+  - name: MySQL is up and running 
+    service: name=mysqld state=restarted 
+  - name: Create a User 
+    mysql_user: user=Gowtham password=ec2-user priv=*.*:ALL state=present 
+  - name: Create a Database 
+    mysql_db: name=assignment4 state=present 
+  - name: Adding data into database 
+    copy: src=/etc/ansible/dump.sql dest=/tmp/dump.sql 
+  - name: Import data into database 
+    mysql_db: name=assignment4 state=import target=/tmp/dump.sql 
+    #  - name: Creating a txt file for database
+    #command: mysql -uGowtham -pec2-user -e SELECT * FROM AUTOMATION INTO OUTFILE '/var/lib/mysql-files/database6.txt';
+  - name: restart mysql 
+    service: name=mysql state=restarted
+
+
